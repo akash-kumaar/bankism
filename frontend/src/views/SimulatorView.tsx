@@ -107,34 +107,40 @@ export const SimulatorView: React.FC = () => {
 
       {/* Account Balances Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {accounts.map((acc) => (
-          <div
-            key={acc.id}
-            onClick={() => setSourceId(acc.id)}
-            className={`p-4 rounded-xl border cursor-pointer transition-all ${
-              sourceId === acc.id
-                ? 'bg-slate-900 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
-                : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
-            }`}
-          >
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <span className="font-mono">{acc.id}</span>
-              <CreditCard className={`w-4 h-4 ${sourceId === acc.id ? 'text-cyan-400' : 'text-slate-500'}`} />
-            </div>
+        {accounts.length === 0 ? (
+          <div className="col-span-3 p-6 rounded-xl bg-slate-900/50 border border-slate-800 text-center font-mono text-xs text-slate-500">
+            {error ? 'Unable to connect to mock bank ledger accounts. Verify backend connectivity.' : 'No accounts available.'}
+          </div>
+        ) : (
+          accounts.map((acc) => (
+            <div
+              key={acc.id}
+              onClick={() => setSourceId(acc.id)}
+              className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                sourceId === acc.id
+                  ? 'bg-slate-900 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
+                  : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
+              }`}
+            >
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span className="font-mono">{acc.id}</span>
+                <CreditCard className={`w-4 h-4 ${sourceId === acc.id ? 'text-cyan-400' : 'text-slate-500'}`} />
+              </div>
 
-            <div className="mt-2">
-              <div className="text-sm font-semibold text-slate-200">{acc.name}</div>
-              <div className="text-xl font-bold font-mono text-emerald-400 mt-0.5">
-                ${parseFloat(acc.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <div className="mt-2">
+                <div className="text-sm font-semibold text-slate-200">{acc.name}</div>
+                <div className="text-xl font-bold font-mono text-emerald-400 mt-0.5">
+                  ${Number(acc.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+
+              <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-500">
+                <span>Limit: ${Number(acc.daily_limit || 0).toLocaleString()}</span>
+                <span className="text-emerald-400/80">VERIFIED</span>
               </div>
             </div>
-
-            <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-500">
-              <span>Limit: ${parseFloat(acc.daily_limit).toLocaleString()}</span>
-              <span className="text-emerald-400/80">VERIFIED</span>
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Transfer Form & Result Banner */}
@@ -156,7 +162,7 @@ export const SimulatorView: React.FC = () => {
               >
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.name} ({a.id}) - ${parseFloat(a.balance).toLocaleString()}
+                    {a.name} ({a.id}) - ${Number(a.balance).toLocaleString()}
                   </option>
                 ))}
               </select>
@@ -318,7 +324,7 @@ export const SimulatorView: React.FC = () => {
                         {tx.recipient}
                       </td>
                       <td className="py-2.5 font-bold text-emerald-400">
-                        ${parseFloat(tx.amount).toFixed(2)}
+                        ${Number(tx.amount).toFixed(2)}
                       </td>
                       <td className="py-2.5 text-slate-400 font-sans text-xs max-w-xs truncate">
                         {tx.memo || '—'}

@@ -4,17 +4,17 @@ import {
   ShieldAlert,
   ShieldCheck,
   Zap,
-  TrendingDown,
   ArrowRight,
   Layers,
   Clock,
   DollarSign,
   AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import { fetchMetrics } from '../services/api';
-import { MetricsData } from '../types';
+import type { MetricsData } from '../types';
 import { VerdictBadge, ThreatBadge } from '../components/common/Badge';
-import { TabId } from '../components/layout/Sidebar';
+import type { TabId } from '../components/layout/Sidebar';
 
 interface OverviewViewProps {
   onNavigate: (tab: TabId, initialPrompt?: string) => void;
@@ -64,10 +64,16 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate }) => {
     );
   }
 
-  const total = metrics?.total_requests || 0;
-  const blocked = metrics?.blocked_count || 0;
-  const approved = metrics?.approved_count || 0;
+  const total = metrics?.total_requests ?? 0;
+  const blocked = metrics?.threats_blocked ?? metrics?.blocked_count ?? 0;
   const blockRate = total > 0 ? ((blocked / total) * 100).toFixed(1) : '0.0';
+  const latency = (metrics?.avg_latency_ms ?? 0.8).toFixed(1);
+  const rawVolume = metrics?.total_volume_transferred ?? metrics?.total_volume_processed ?? '0';
+  const volumeProcessed = parseFloat(String(rawVolume)).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const recentEvents = metrics?.recent_activity ?? metrics?.recent_events ?? [];
 
   return (
     <div className="space-y-6">
@@ -101,9 +107,18 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate }) => {
       </div>
 
       {error && (
-        <div className="p-3 bg-rose-950/40 border border-rose-900/60 rounded-xl text-xs text-rose-300 font-mono flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-          <span>Error loading live telemetry: {error}</span>
+        <div className="p-3 bg-amber-950/40 border border-amber-900/60 rounded-xl text-xs text-amber-300 font-mono flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+            <span>Telemetry notice: {error} (Standby display mode active)</span>
+          </div>
+          <button
+            onClick={loadData}
+            className="flex items-center gap-1 px-2.5 py-1 rounded bg-amber-900/60 hover:bg-amber-800 text-amber-200 border border-amber-700/60 text-[11px]"
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span>Retry</span>
+          </button>
         </div>
       )}
 
@@ -159,7 +174,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate }) => {
             <Zap className="w-4 h-4 text-amber-400" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono text-amber-400 tracking-tight">
-            {metrics?.avg_latency_ms.toFixed(1)}ms
+            {latency}ms
           </div>
           <div className="mt-1 text-[11px] text-slate-500 font-mono">
             Sub-millisecond deterministic checks
@@ -178,7 +193,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate }) => {
             <DollarSign className="w-4 h-4 text-emerald-400" />
           </div>
           <div className="mt-2 text-2xl font-bold font-mono text-emerald-400 tracking-tight">
-            ${parseFloat(metrics?.total_volume_processed || '0').toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${volumeProcessed}
           </div>
           <div className="mt-1 text-[11px] text-slate-500 font-mono">
             Guarded ledger commitments
@@ -257,35 +272,45 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {metrics?.recent_events.slice(0, 8).map((evt) => (
-                  <tr key={evt.request_id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="py-2.5 pr-3 text-slate-300 font-sans max-w-xs truncate">
-                      {evt.prompt_preview}
-                    </td>
-                    <td className="py-2.5 pr-2">
-                      <VerdictBadge verdict={evt.verdict} size="sm" />
-                    </td>
-                    <td className="py-2.5 pr-2">
-                      <ThreatBadge category={evt.threat_category} />
-                    </td>
-                    <td className="py-2.5 pr-3 text-right font-mono font-bold">
-                      <span className={
-                        evt.risk_score <= 25 ? 'text-emerald-400' :
-                        evt.risk_score <= 60 ? 'text-amber-400' : 'text-rose-400'
-                      }>
-                        {evt.risk_score}
-                      </span>
-                    </td>
-                    <td className="py-2.5 text-right">
-                      <button
-                        onClick={() => onNavigate('inspector', evt.prompt_preview)}
-                        className="text-[11px] text-cyan-400 hover:text-cyan-300 font-mono hover:underline"
-                      >
-                        Inspect →
-                      </button>
+                {recentEvents.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-slate-500 font-mono">
+                      {error
+                        ? 'Backend disconnected. Click "Test Firewall" to inspect prompts or check connection.'
+                        : 'No events logged in this session yet.'}
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  recentEvents.slice(0, 8).map((evt) => (
+                    <tr key={evt.request_id} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="py-2.5 pr-3 text-slate-300 font-sans max-w-xs truncate">
+                        {evt.prompt_preview}
+                      </td>
+                      <td className="py-2.5 pr-2">
+                        <VerdictBadge verdict={evt.verdict} size="sm" />
+                      </td>
+                      <td className="py-2.5 pr-2">
+                        <ThreatBadge category={evt.threat_category} />
+                      </td>
+                      <td className="py-2.5 pr-3 text-right font-mono font-bold">
+                        <span className={
+                          evt.risk_score <= 25 ? 'text-emerald-400' :
+                          evt.risk_score <= 60 ? 'text-amber-400' : 'text-rose-400'
+                        }>
+                          {evt.risk_score}
+                        </span>
+                      </td>
+                      <td className="py-2.5 text-right">
+                        <button
+                          onClick={() => onNavigate('inspector', evt.prompt_preview)}
+                          className="text-[11px] text-cyan-400 hover:text-cyan-300 font-mono hover:underline"
+                        >
+                          Inspect →
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

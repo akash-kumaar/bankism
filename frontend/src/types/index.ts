@@ -3,10 +3,13 @@ export type Verdict = 'APPROVED' | 'BLOCKED' | 'NEEDS_CLARIFICATION';
 export type ThreatCategory =
   | 'NONE'
   | 'DIRECT_PROMPT_INJECTION'
+  | 'PROMPT_INJECTION'
   | 'JAILBREAK_ROLEPLAY'
   | 'POLICY_OVERRIDE'
   | 'MALICIOUS_TRANSACTION_MEMO'
+  | 'MALICIOUS_MEMO'
   | 'SUSPICIOUS_UNICODE'
+  | 'UNICODE_OBFUSCATION'
   | 'AMBIGUOUS_INTENT'
   | 'INVALID_TRANSACTION_INPUT';
 
@@ -29,49 +32,65 @@ export interface Finding {
   matched_pattern?: string;
 }
 
-export interface ParsedIntent {
-  action: string;
-  recipient: string | null;
-  amount: string | number | null;
-  source_account: string | null;
-  memo: string | null;
-  confidence: number;
+export interface PipelineStage {
+  stage_name?: string;
+  status?: string;
+  execution_time_ms?: number;
+  details?: string;
+  // compatibility
+  stage?: PipelineStageName;
+  passed?: boolean;
+  duration_ms?: number;
+  message?: string;
 }
 
-export interface StageResult {
-  stage: PipelineStageName;
-  passed: boolean;
-  duration_ms: number;
-  message: string;
-  details?: Record<string, any>;
+export type StageResult = PipelineStage;
+
+export interface ParsedIntent {
+  intent_type?: string;
+  action?: string;
+  recipient: string | null;
+  amount: string | number | null;
+  currency?: string;
+  memo: string | null;
+  source_account_id?: string | null;
+  source_account?: string | null;
+  confidence?: number;
+  is_ambiguous?: boolean;
 }
 
 export interface InspectResponse {
   request_id: string;
   timestamp: string;
-  raw_input: string;
-  normalized_input: string;
   verdict: Verdict;
   risk_score: number;
+  risk_level?: string;
   threat_category: ThreatCategory;
-  summary: string;
+  rationale?: string;
+  summary?: string;
   findings: Finding[];
-  stages: StageResult[];
+  pipeline?: PipelineStage[];
+  stages?: PipelineStage[];
+  normalized_text?: string;
+  normalized_input?: string;
+  raw_input?: string;
   parsed_intent: ParsedIntent | null;
   action_executed: boolean;
   execution_error?: string | null;
   transaction_id?: string | null;
+  account_id?: string | null;
 }
 
 export interface Account {
   id: string;
   name: string;
   type: string;
-  balance: string;
+  balance: string | number;
   currency: string;
-  is_verified: boolean;
-  daily_limit: string;
-  is_internal: boolean;
+  status?: string;
+  is_verified?: boolean;
+  daily_limit?: string | number;
+  is_internal?: boolean;
 }
 
 export interface Transaction {
@@ -79,42 +98,59 @@ export interface Transaction {
   timestamp: string;
   source_account_id: string;
   recipient: string;
-  amount: string;
+  amount: string | number;
   memo?: string | null;
+  status: string;
+  firewall_verdict?: Verdict;
+  verdict?: Verdict;
+  threat_category?: ThreatCategory;
+  risk_score?: number;
+  request_id?: string;
+}
+
+export interface RecentEvent {
+  request_id: string;
+  timestamp: string;
   verdict: Verdict;
   threat_category: ThreatCategory;
   risk_score: number;
-  request_id: string;
-  status: string;
+  prompt_preview: string;
+  action_executed: boolean;
+  amount?: string | number | null;
 }
 
 export interface MetricsData {
   total_requests: number;
-  approved_count: number;
-  blocked_count: number;
-  clarification_count: number;
-  avg_latency_ms: number;
-  avg_risk_score: number;
-  total_volume_processed: string;
+  threats_blocked: number;
+  requests_approved: number;
+  needs_clarification: number;
+  transfers_executed?: number;
+  total_volume_transferred: string | number;
   verdict_breakdown: Record<string, number>;
-  threat_breakdown: Record<string, number>;
-  risk_distribution: Record<string, number>;
-  recent_events: Array<{
-    request_id: string;
-    timestamp: string;
-    verdict: Verdict;
-    threat_category: ThreatCategory;
-    risk_score: number;
-    prompt_preview: string;
-    action_executed: boolean;
-    amount?: string | number | null;
-  }>;
+  threat_category_breakdown: Record<string, number>;
+  risk_score_distribution: Record<string, number>;
+  recent_activity: RecentEvent[];
+  is_seeded?: boolean;
+  environment?: string;
+
+  // Compatibility aliases
+  blocked_count?: number;
+  approved_count?: number;
+  clarification_count?: number;
+  avg_latency_ms?: number;
+  avg_risk_score?: number;
+  total_volume_processed?: string;
+  threat_breakdown?: Record<string, number>;
+  risk_distribution?: Record<string, number>;
+  recent_events?: RecentEvent[];
 }
 
 export interface HealthStatus {
   status: string;
-  app_name: string;
   version: string;
+  environment?: string;
   timestamp: string;
-  checks: Record<string, boolean>;
+  firewall_active?: boolean;
+  app_name?: string;
+  checks?: Record<string, boolean>;
 }

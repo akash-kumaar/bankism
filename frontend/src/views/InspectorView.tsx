@@ -12,7 +12,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { inspectPrompt } from '../services/api';
-import { InspectResponse } from '../types';
+import type { InspectResponse } from '../types';
 import { VerdictBadge, SeverityBadge, ThreatBadge } from '../components/common/Badge';
 import { RiskMeter } from '../components/common/RiskMeter';
 import { PipelineTimeline } from '../components/common/PipelineTimeline';
@@ -78,6 +78,12 @@ export const InspectorView: React.FC<InspectorViewProps> = ({ initialPrompt = ''
       setLoading(false);
     }
   };
+
+  const stages = result ? (result.pipeline || result.stages || []) : [];
+  const findings = result ? (result.findings || []) : [];
+  const rationale = result ? (result.rationale || result.summary || 'Evaluation complete.') : '';
+  const rawText = result ? (result.raw_input || prompt) : prompt;
+  const normalizedText = result ? (result.normalized_text || result.normalized_input || prompt) : prompt;
 
   return (
     <div className="space-y-6">
@@ -224,7 +230,7 @@ export const InspectorView: React.FC<InspectorViewProps> = ({ initialPrompt = ''
                     <ThreatBadge category={result.threat_category} />
                   </div>
                   <p className="text-sm text-slate-200 mt-2 font-medium">
-                    {result.summary}
+                    {rationale}
                   </p>
                   <div className="flex items-center gap-4 text-xs font-mono text-slate-400 mt-2">
                     <span>ID: {result.request_id}</span>
@@ -254,11 +260,11 @@ export const InspectorView: React.FC<InspectorViewProps> = ({ initialPrompt = ''
                     <span>Pipeline Stage Execution</span>
                   </h3>
                   <span className="text-xs font-mono text-slate-400">
-                    Total Stages: {result.stages.length}
+                    Total Stages: {stages.length}
                   </span>
                 </div>
 
-                <PipelineTimeline stages={result.stages} />
+                <PipelineTimeline stages={stages} />
               </div>
 
               {/* Right Column: Findings, Parsed Intent & Normalization Diff */}
@@ -268,17 +274,17 @@ export const InspectorView: React.FC<InspectorViewProps> = ({ initialPrompt = ''
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
                       <AlertOctagon className="w-4 h-4 text-rose-400" />
-                      <span>Security Findings ({result.findings.length})</span>
+                      <span>Security Findings ({findings.length})</span>
                     </h3>
                   </div>
 
-                  {result.findings.length === 0 ? (
+                  {findings.length === 0 ? (
                     <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 text-center font-mono text-xs text-emerald-400">
                       ✓ No threat signatures or policy violations identified.
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {result.findings.map((finding, idx) => (
+                      {findings.map((finding, idx) => (
                         <div
                           key={idx}
                           className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5"
@@ -313,12 +319,16 @@ export const InspectorView: React.FC<InspectorViewProps> = ({ initialPrompt = ''
                   {result.parsed_intent ? (
                     <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 font-mono text-xs space-y-2">
                       <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
-                        <span className="text-slate-400">Extracted Action:</span>
-                        <span className="text-cyan-300 font-semibold">{result.parsed_intent.action}</span>
+                        <span className="text-slate-400">Intent Action:</span>
+                        <span className="text-cyan-300 font-semibold">
+                          {result.parsed_intent.intent_type || result.parsed_intent.action || 'TRANSFER'}
+                        </span>
                       </div>
                       <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
                         <span className="text-slate-400">Target Recipient:</span>
-                        <span className="text-slate-200">{result.parsed_intent.recipient || '<none detected>'}</span>
+                        <span className="text-slate-200">
+                          {result.parsed_intent.recipient || '<none detected>'}
+                        </span>
                       </div>
                       <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
                         <span className="text-slate-400">Validated Amount:</span>
@@ -328,11 +338,15 @@ export const InspectorView: React.FC<InspectorViewProps> = ({ initialPrompt = ''
                       </div>
                       <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
                         <span className="text-slate-400">Transaction Memo:</span>
-                        <span className="text-slate-300 truncate max-w-[200px]">{result.parsed_intent.memo || '<none>'}</span>
+                        <span className="text-slate-300 truncate max-w-[200px]">
+                          {result.parsed_intent.memo || '—'}
+                        </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Grammar Confidence:</span>
-                        <span className="text-slate-300">{(result.parsed_intent.confidence * 100).toFixed(0)}%</span>
+                        <span className="text-slate-400">Ambiguity Check:</span>
+                        <span className={result.parsed_intent.is_ambiguous ? 'text-amber-400' : 'text-emerald-400'}>
+                          {result.parsed_intent.is_ambiguous ? 'Flagged Ambiguous' : 'Unambiguous Clear'}
+                        </span>
                       </div>
                     </div>
                   ) : (
@@ -358,15 +372,15 @@ export const InspectorView: React.FC<InspectorViewProps> = ({ initialPrompt = ''
                   {showNormalizedDiff && (
                     <div className="mt-3 pt-3 border-t border-slate-800 font-mono text-xs space-y-2">
                       <div>
-                        <span className="text-slate-500 block text-[10px] uppercase">Raw Untrusted Bytes:</span>
+                        <span className="text-slate-500 block text-[10px] uppercase">Raw Untrusted Input:</span>
                         <div className="bg-slate-950 p-2 rounded border border-slate-800 text-slate-300 break-all">
-                          {result.raw_input}
+                          {rawText}
                         </div>
                       </div>
                       <div>
                         <span className="text-slate-500 block text-[10px] uppercase">NFKC Canonical Form:</span>
                         <div className="bg-slate-950 p-2 rounded border border-slate-800 text-cyan-300 break-all">
-                          {result.normalized_input}
+                          {normalizedText}
                         </div>
                       </div>
                     </div>

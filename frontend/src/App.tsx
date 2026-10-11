@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Header } from './components/layout/Header';
 import { Sidebar, type TabId } from './components/layout/Sidebar';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { OverviewView } from './views/OverviewView';
 import { InspectorView } from './views/InspectorView';
 import { PlaygroundView } from './views/PlaygroundView';
@@ -29,34 +30,36 @@ export const App: React.FC = () => {
 
         <main className="flex-1 overflow-y-auto p-6 md:p-8">
           <div className="max-w-7xl mx-auto">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentTab}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
-              >
-                {currentTab === 'overview' && (
-                  <OverviewView onNavigate={handleNavigate} />
-                )}
-                {currentTab === 'inspector' && (
-                  <InspectorView initialPrompt={inspectorPrompt} />
-                )}
-                {currentTab === 'playground' && (
-                  <PlaygroundView />
-                )}
-                {currentTab === 'simulator' && (
-                  <SimulatorView />
-                )}
-                {currentTab === 'analytics' && (
-                  <AnalyticsView />
-                )}
-                {currentTab === 'architecture' && (
-                  <ArchitectureView />
-                )}
-              </motion.div>
-            </AnimatePresence>
+            <ErrorBoundary key={currentTab} fallbackTitle="Security Console View Intercepted">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentTab}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                >
+                  {currentTab === 'overview' && (
+                    <OverviewView onNavigate={handleNavigate} />
+                  )}
+                  {currentTab === 'inspector' && (
+                    <InspectorView initialPrompt={inspectorPrompt} />
+                  )}
+                  {currentTab === 'playground' && (
+                    <PlaygroundView />
+                  )}
+                  {currentTab === 'simulator' && (
+                    <SimulatorView />
+                  )}
+                  {currentTab === 'analytics' && (
+                    <AnalyticsView />
+                  )}
+                  {currentTab === 'architecture' && (
+                    <ArchitectureView />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </ErrorBoundary>
           </div>
         </main>
       </div>

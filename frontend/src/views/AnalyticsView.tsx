@@ -18,9 +18,10 @@ import {
   PieChart as PieIcon,
   ShieldCheck,
   Activity,
+  AlertTriangle,
 } from 'lucide-react';
 import { fetchMetrics } from '../services/api';
-import { MetricsData, ThreatCategory, Verdict } from '../types';
+import type { MetricsData } from '../types';
 import { VerdictBadge, ThreatBadge } from '../components/common/Badge';
 
 const VERDICT_COLORS: Record<string, string> = {
@@ -34,14 +35,18 @@ const RISK_BUCKET_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#f97316', '#ef4444
 export const AnalyticsView: React.FC = () => {
   const [metrics, setMetrics] = useState<MetricsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [verdictFilter, setVerdictFilter] = useState<string>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
 
   const loadData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await fetchMetrics();
       setMetrics(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load analytics telemetry');
     } finally {
       setLoading(false);
     }
@@ -52,34 +57,42 @@ export const AnalyticsView: React.FC = () => {
   }, []);
 
   // Format verdict data for Pie Chart
-  const verdictData = metrics
-    ? Object.entries(metrics.verdict_breakdown).map(([name, value]) => ({
-        name,
-        value,
-      }))
-    : [];
+  const rawVerdicts = metrics?.verdict_breakdown ?? {
+    APPROVED: 0,
+    BLOCKED: 0,
+    NEEDS_CLARIFICATION: 0,
+  };
+  const verdictData = Object.entries(rawVerdicts).map(([name, value]) => ({
+    name,
+    value,
+  }));
 
   // Format threat breakdown data for Bar Chart
-  const threatData = metrics
-    ? Object.entries(metrics.threat_breakdown)
-        .map(([name, value]) => ({
-          category: name.replace(/_/g, ' '),
-          rawName: name,
-          count: value,
-        }))
-        .sort((a, b) => b.count - a.count)
-    : [];
+  const rawThreats = metrics?.threat_category_breakdown ?? metrics?.threat_breakdown ?? {};
+  const threatData = Object.entries(rawThreats)
+    .map(([name, value]) => ({
+      category: name.replace(/_/g, ' '),
+      rawName: name,
+      count: value,
+    }))
+    .sort((a, b) => b.count - a.count);
 
   // Format risk distribution for Bar Chart
-  const riskData = metrics
-    ? Object.entries(metrics.risk_distribution).map(([range, count]) => ({
-        range: `${range} Risk`,
-        count,
-      }))
-    : [];
+  const rawRisk = metrics?.risk_score_distribution ?? metrics?.risk_distribution ?? {
+    '0-20': 0,
+    '21-40': 0,
+    '41-60': 0,
+    '61-80': 0,
+    '81-100': 0,
+  };
+  const riskData = Object.entries(rawRisk).map(([range, count]) => ({
+    range: `${range} Risk`,
+    count,
+  }));
 
   // Filter events
-  const filteredEvents = (metrics?.recent_events || []).filter((e) => {
+  const allEvents = metrics?.recent_activity ?? metrics?.recent_events ?? [];
+  const filteredEvents = allEvents.filter((e) => {
     if (verdictFilter !== 'ALL' && e.verdict !== verdictFilter) return false;
     if (categoryFilter !== 'ALL' && e.threat_category !== categoryFilter) return false;
     return true;
@@ -108,6 +121,22 @@ export const AnalyticsView: React.FC = () => {
           <span>Refresh Analytics</span>
         </button>
       </div>
+
+      {error && (
+        <div className="p-3 bg-amber-950/40 border border-amber-900/60 rounded-xl text-xs text-amber-300 font-mono flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+            <span>Telemetry notice: {error} (Offline mode active)</span>
+          </div>
+          <button
+            onClick={loadData}
+            className="flex items-center gap-1 px-2.5 py-1 rounded bg-amber-900/60 hover:bg-amber-800 text-amber-200 border border-amber-700/60 text-[11px]"
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span>Retry</span>
+          </button>
+        </div>
+      )}
 
       {/* Top 3 Visual Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -178,7 +207,7 @@ export const AnalyticsView: React.FC = () => {
               <span>Risk Score Buckets</span>
             </h3>
             <span className="text-[11px] font-mono text-slate-400">
-              Avg: {metrics?.avg_risk_score.toFixed(1)}
+              {metrics ? `Total: ${metrics.total_requests}` : 'Standby'}
             </span>
           </div>
 
@@ -227,31 +256,37 @@ export const AnalyticsView: React.FC = () => {
 
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                layout="vertical"
-                data={threatData}
-                margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis type="number" stroke="#64748b" fontSize={10} />
-                <YAxis
-                  dataKey="category"
-                  type="category"
-                  stroke="#94a3b8"
-                  fontSize={9}
-                  width={90}
-                  tickLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#090d16',
-                    borderColor: '#1e293b',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                  }}
-                />
-                <Bar dataKey="count" fill="#38bdf8" radius={[0, 4, 4, 0]} />
-              </BarChart>
+              {threatData.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-slate-500 font-mono text-xs">
+                  No threat events detected
+                </div>
+              ) : (
+                <BarChart
+                  layout="vertical"
+                  data={threatData}
+                  margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis type="number" stroke="#64748b" fontSize={10} />
+                  <YAxis
+                    dataKey="category"
+                    type="category"
+                    stroke="#94a3b8"
+                    fontSize={9}
+                    width={90}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#090d16',
+                      borderColor: '#1e293b',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                    }}
+                  />
+                  <Bar dataKey="count" fill="#38bdf8" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              )}
             </ResponsiveContainer>
           </div>
 
@@ -318,43 +353,51 @@ export const AnalyticsView: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-mono">
-              {filteredEvents.map((evt) => (
-                <tr key={evt.request_id} className="hover:bg-slate-800/30 transition-colors">
-                  <td className="py-2.5 text-slate-400 text-[11px]">
-                    {new Date(evt.timestamp).toLocaleTimeString()}
-                  </td>
-                  <td className="py-2.5 text-cyan-400/90 text-[11px]">
-                    {evt.request_id}
-                  </td>
-                  <td className="py-2.5 font-sans text-slate-200 max-w-sm truncate">
-                    {evt.prompt_preview}
-                  </td>
-                  <td className="py-2.5">
-                    <VerdictBadge verdict={evt.verdict} size="sm" />
-                  </td>
-                  <td className="py-2.5">
-                    <ThreatBadge category={evt.threat_category} />
-                  </td>
-                  <td className="py-2.5 text-right font-bold">
-                    <span
-                      className={
-                        evt.risk_score <= 25
-                          ? 'text-emerald-400'
-                          : evt.risk_score <= 60
-                          ? 'text-amber-400'
-                          : 'text-rose-400'
-                      }
-                    >
-                      {evt.risk_score}
-                    </span>
-                  </td>
-                  <td className="py-2.5 text-right">
-                    <span className={evt.action_executed ? 'text-emerald-400' : 'text-slate-500'}>
-                      {evt.action_executed ? 'YES' : 'NO'}
-                    </span>
+              {filteredEvents.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-6 text-center text-slate-500 font-mono">
+                    {error ? 'Telemetry server unreachable.' : 'No events match the selected criteria.'}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredEvents.map((evt) => (
+                  <tr key={evt.request_id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="py-2.5 text-slate-400 text-[11px]">
+                      {new Date(evt.timestamp).toLocaleTimeString()}
+                    </td>
+                    <td className="py-2.5 text-cyan-400/90 text-[11px]">
+                      {evt.request_id}
+                    </td>
+                    <td className="py-2.5 font-sans text-slate-200 max-w-sm truncate">
+                      {evt.prompt_preview}
+                    </td>
+                    <td className="py-2.5">
+                      <VerdictBadge verdict={evt.verdict} size="sm" />
+                    </td>
+                    <td className="py-2.5">
+                      <ThreatBadge category={evt.threat_category} />
+                    </td>
+                    <td className="py-2.5 text-right font-bold">
+                      <span
+                        className={
+                          evt.risk_score <= 25
+                            ? 'text-emerald-400'
+                            : evt.risk_score <= 60
+                            ? 'text-amber-400'
+                            : 'text-rose-400'
+                        }
+                      >
+                        {evt.risk_score}
+                      </span>
+                    </td>
+                    <td className="py-2.5 text-right">
+                      <span className={evt.action_executed ? 'text-emerald-400' : 'text-slate-500'}>
+                        {evt.action_executed ? 'YES' : 'NO'}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
