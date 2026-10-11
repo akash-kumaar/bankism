@@ -328,12 +328,15 @@ export const AnalyticsView: React.FC = () => {
               >
                 <option value="ALL">All Categories</option>
                 <option value="NONE">NONE (BENIGN)</option>
-                <option value="DIRECT_PROMPT_INJECTION">PROMPT INJECTION</option>
+                <option value="PROMPT_INJECTION">PROMPT INJECTION</option>
+                <option value="SYSTEM_OVERRIDE">SYSTEM OVERRIDE</option>
                 <option value="JAILBREAK_ROLEPLAY">JAILBREAK ROLEPLAY</option>
-                <option value="POLICY_OVERRIDE">POLICY OVERRIDE</option>
-                <option value="MALICIOUS_TRANSACTION_MEMO">MALICIOUS MEMO</option>
-                <option value="SUSPICIOUS_UNICODE">SUSPICIOUS UNICODE</option>
+                <option value="AUTHORIZATION_BYPASS">AUTHORIZATION BYPASS</option>
+                <option value="MALICIOUS_MEMO">MALICIOUS MEMO</option>
+                <option value="UNICODE_OBFUSCATION">UNICODE OBFUSCATION</option>
+                <option value="REPEATED_ATTACK">REPEATED ATTACK</option>
                 <option value="AMBIGUOUS_INTENT">AMBIGUOUS INTENT</option>
+                <option value="POLICY_VIOLATION">POLICY VIOLATION</option>
               </select>
             </div>
           </div>

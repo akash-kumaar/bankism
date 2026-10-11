@@ -2,16 +2,15 @@ export type Verdict = 'APPROVED' | 'BLOCKED' | 'NEEDS_CLARIFICATION';
 
 export type ThreatCategory =
   | 'NONE'
-  | 'DIRECT_PROMPT_INJECTION'
   | 'PROMPT_INJECTION'
+  | 'SYSTEM_OVERRIDE'
   | 'JAILBREAK_ROLEPLAY'
-  | 'POLICY_OVERRIDE'
-  | 'MALICIOUS_TRANSACTION_MEMO'
+  | 'AUTHORIZATION_BYPASS'
   | 'MALICIOUS_MEMO'
-  | 'SUSPICIOUS_UNICODE'
   | 'UNICODE_OBFUSCATION'
+  | 'REPEATED_ATTACK'
   | 'AMBIGUOUS_INTENT'
-  | 'INVALID_TRANSACTION_INPUT';
+  | 'POLICY_VIOLATION';
 
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
@@ -27,9 +26,8 @@ export type PipelineStageName =
 export interface Finding {
   category: ThreatCategory;
   severity: Severity;
-  rule_id: string;
+  signal: string;
   description: string;
-  matched_pattern?: string;
 }
 
 export interface PipelineStage {

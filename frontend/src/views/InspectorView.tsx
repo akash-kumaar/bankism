@@ -103,15 +103,16 @@ export const InspectorView: React.FC<InspectorViewProps> = ({ initialPrompt = ''
 
         {/* Source account picker */}
         <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-          <span>Source Account:</span>
+          <label htmlFor="inspector-source-account">Source Account:</label>
           <select
+            id="inspector-source-account"
             value={selectedAccount}
             onChange={(e) => setSelectedAccount(e.target.value)}
             className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs focus:outline-none focus:border-cyan-500"
           >
-            <option value="acc_chk_101">acc_chk_101 (Checking - $15,420.50)</option>
-            <option value="acc_sav_202">acc_sav_202 (Savings - $42,100.00)</option>
-            <option value="acc_bus_303">acc_bus_303 (Business - $8,950.00)</option>
+            <option value="acc_chk_101">acc_chk_101 (Checking - $12,450.00)</option>
+            <option value="acc_sav_202">acc_sav_202 (Savings - $45,200.00)</option>
+            <option value="acc_biz_303">acc_biz_303 (Business - $98,750.00)</option>
           </select>
         </div>
       </div>
@@ -145,7 +146,11 @@ export const InspectorView: React.FC<InspectorViewProps> = ({ initialPrompt = ''
       {/* Prompt Input Form */}
       <form onSubmit={handleInspect} className="space-y-3">
         <div className="relative">
+          <label htmlFor="inspector-request" className="sr-only">
+            Natural-language banking request to inspect
+          </label>
           <textarea
+            id="inspector-request"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Enter untrusted natural-language request (e.g. 'Transfer $120 to Alice Walker for dinner')..."
@@ -178,7 +183,7 @@ export const InspectorView: React.FC<InspectorViewProps> = ({ initialPrompt = ''
       </form>
 
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-900/60 rounded-xl text-xs text-rose-300 font-mono flex items-center gap-3">
+        <div role="alert" className="p-4 bg-rose-950/40 border border-rose-900/60 rounded-xl text-xs text-rose-300 font-mono flex items-center gap-3">
           <AlertOctagon className="w-5 h-5 text-rose-400 shrink-0" />
           <div>
             <div className="font-bold">INSPECTION ERROR</div>
@@ -291,18 +296,13 @@ export const InspectorView: React.FC<InspectorViewProps> = ({ initialPrompt = ''
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-mono text-xs font-bold text-slate-200">
-                              {finding.rule_id}
+                              {finding.signal}
                             </span>
                             <SeverityBadge severity={finding.severity} />
                           </div>
                           <p className="text-xs text-slate-300 font-sans">
                             {finding.description}
                           </p>
-                          {finding.matched_pattern && (
-                            <div className="text-[11px] font-mono text-rose-400/90 bg-rose-950/30 px-2 py-0.5 rounded border border-rose-900/40">
-                              Pattern: {finding.matched_pattern}
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
