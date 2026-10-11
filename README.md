@@ -1,87 +1,91 @@
 # 🛡️ Bankism — Blue-Team AI Firewall
 
-> **PromptWars × UVCE Hackathon Entry**  
-> *Defensive AI Security Firewall for Natural-Language Banking Applications*
+> A deterministic security gateway for protecting natural-language banking applications from prompt injection and malicious transaction instructions.
 
----
+## 🚀 Live Demo
 
-## 🎯 Executive Overview
+**[Open Bankism →](https://bankism-6oo8.onrender.com)** · [GitHub Repository](https://github.com/akash-kumaar/bankism)
 
-**Bankism** is a production-grade defensive AI security gateway situated between natural-language user inputs (e.g. conversational agents, mobile voice assistants, smart banking chats) and deterministic core banking ledgers.
+*Hosted on Render Free. Initial loading may take 50 seconds or more after inactivity.*
 
-Unlike naive approaches that pass untrusted user instructions directly to an LLM agent with banking tools or execution privileges, Bankism implements a **multi-stage deterministic security firewall**. Detection and risk scoring **never** override deterministic authorization and banking policy.
+## 🎯 Overview
 
----
+Bankism is a defensive AI security gateway that sits between natural-language user requests and simulated banking operations. It detects suspicious instructions while ensuring that **AI risk scores never override deterministic transaction policies**.
 
-## 🛡️ Key Security Invariants
+## 🔐 Key Features
 
-1. **Untrusted NL content never directly authorizes a transfer.** Every request is normalized, threat-inspected, parsed into explicit parameters, policy-verified, and strictly audited before simulation.
-2. **Hard-block rules cannot be bypassed by low risk scores.** If an injection or high-severity threat is detected, the verdict is `BLOCKED` regardless of semantic ambiguity or classification heuristics.
-3. **Strict Parameter Validation & Precision Accounting.**
-   - All amounts are computed using Python `Decimal` (no floating-point rounding attacks).
-   - Recipient names must match verified allowlist entities.
-   - Transaction limits ($5,000 per transaction) and balance checks are strictly enforced.
-4. **Defense in Depth Pipeline:**
-   - **Stage 1: Schema & Length Validation** (Reject oversized payloads, malformed JSON, empty inputs)
-   - **Stage 2: Unicode & Character Normalization** (Strip zero-width characters, detect BIDI overrides, decompose homoglyphs, NFKC normalization)
-   - **Stage 3: Multi-Signal Threat Detection** (Direct Prompt Injection, Jailbreak/Roleplay, Policy Override, Malicious Memo, Suspicious Unicode, Ambiguity)
-   - **Stage 4: Deterministic Intent Parsing** (Strict extraction without hallucinating missing fields)
-   - **Stage 5: Policy Enforcement** (Hard-block evaluations, limits, funds, recipient allowlists)
-   - **Stage 6: Guarded Execution** (Atomic ledger commit only when 100% verified)
-   - **Stage 7: Structured Audit & Telemetry** (Immutable logging of request lifecycle and findings)
+- **Prompt Injection Detection** — Identifies malicious instructions, jailbreak attempts, and policy overrides.
+- **Unicode Normalization** — Detects suspicious Unicode characters and obfuscation patterns.
+- **Deterministic Policy Enforcement** — Validates recipients, transaction limits, and account balances.
+- **Precision Accounting** — Uses Python `Decimal` for monetary calculations.
+- **Guarded Transaction Execution** — Executes simulated transfers only after required checks pass.
+- **Security Inspector & Analytics** — Explore findings, transaction decisions, and threat metrics.
+- **Automated Testing** — Regression tests for detection, normalization, and transaction policies.
 
----
+## ⚙️ Tech Stack
 
-## 🏗️ Architecture & Stack
+**Backend:** Python, FastAPI, Pydantic, Pytest, Ruff  
+**Frontend:** React, TypeScript, Vite, Tailwind CSS, Recharts  
+**Deployment:** Docker, Render, GitHub Actions
 
-- **Backend:** Python 3.10+, FastAPI, Pydantic v2, Pytest, Ruff.
-- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, Framer Motion, Lucide Icons, Recharts.
-- **Packaging:** Multi-stage Dockerfile, Docker Compose, Google Cloud Run ready.
-- **CI/CD:** GitHub Actions workflow testing backend ruff/pytest and frontend build.
+## 🏗️ Security Pipeline
 
----
-
-## 🚀 Quickstart
-
-### Option A: Local Python & Node Execution
-
-#### 1. Backend Setup
-```bash
-cd backend
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# Linux/macOS:
-source .venv/bin/activate
-
-pip install -r requirements.txt
-pytest -v
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```text
+User Input
+    ↓
+Validation & Normalization
+    ↓
+Threat Detection
+    ↓
+Intent Parsing
+    ↓
+Deterministic Policy Checks
+    ↓
+Guarded Execution
+    ↓
+Audit & Telemetry
 ```
 
-#### 2. Frontend Setup
+Threat detection identifies risk; deterministic policy enforcement controls execution.
+
+## 💻 Run Locally
+
+**Backend**
+
 ```bash
-cd frontend
+git clone https://github.com/akash-kumaar/bankism.git
+cd bankism/backend
+
+python -m venv .venv
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+**Frontend** — Open a second terminal:
+
+```bash
+cd bankism/frontend
 npm install
 npm run dev
 ```
 
-### Option B: Docker Container
+Configure the frontend API URL for your local backend if required.
+
+## 🧪 Tests
+
+From the `backend` directory:
+
 ```bash
-docker build -t bankism .
-docker run -p 8080:8080 bankism
-# Visit http://localhost:8080 in your browser
+python -m pytest -v
+python -m ruff check .
 ```
+
+The project reports 67 automated tests covering security regression cases, normalization, detection, and transaction policies.
+
+## ⚠️ Scope
+
+Bankism is a hackathon security demonstration using simulated banking operations. It is not connected to a real banking ledger and is not intended for real financial transactions.
 
 ---
 
-## 🧪 Testing & Verification
-
-Run the full automated test suite:
-```bash
-cd backend
-pytest -v
-ruff check .
-```
-
-All 67 security regression, policy invariant, normalization, detector, and transaction tests pass deterministically.
+**PromptWars × UVCE Hackathon Entry** · [Live Demo](https://bankism-6oo8.onrender.com) · [Source Code](https://github.com/akash-kumaar/bankism)
