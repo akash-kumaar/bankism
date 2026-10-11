@@ -6,10 +6,8 @@ import {
   CheckCircle2,
   AlertOctagon,
   CreditCard,
-  UserCheck,
   RefreshCw,
   Clock,
-  DollarSign,
   ShieldCheck,
 } from 'lucide-react';
 import { executeTransfer, fetchAccounts, fetchTransactions } from '../services/api';
@@ -73,8 +71,6 @@ export const SimulatorView: React.FC = () => {
     }
   };
 
-  const selectedAccount = accounts.find((a) => a.id === sourceId);
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -100,7 +96,7 @@ export const SimulatorView: React.FC = () => {
       </div>
 
       {error && (
-        <div className="p-3 bg-rose-950/40 border border-rose-900/60 rounded-xl text-xs text-rose-300 font-mono">
+        <div role="alert" className="p-3 bg-rose-950/40 border border-rose-900/60 rounded-xl text-xs text-rose-300 font-mono">
           {error}
         </div>
       )}
@@ -113,10 +109,13 @@ export const SimulatorView: React.FC = () => {
           </div>
         ) : (
           accounts.map((acc) => (
-            <div
+            <button
+              type="button"
               key={acc.id}
               onClick={() => setSourceId(acc.id)}
-              className={`p-4 rounded-xl border cursor-pointer transition-all ${
+              aria-pressed={sourceId === acc.id}
+              aria-label={`Select ${acc.name} (${acc.id}) as the source account`}
+              className={`w-full p-4 rounded-xl border cursor-pointer transition-all text-left ${
                 sourceId === acc.id
                   ? 'bg-slate-900 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
                   : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
@@ -138,7 +137,7 @@ export const SimulatorView: React.FC = () => {
                 <span>Limit: ${Number(acc.daily_limit || 0).toLocaleString()}</span>
                 <span className="text-emerald-400/80">VERIFIED</span>
               </div>
-            </div>
+            </button>
           ))
         )}
       </div>
@@ -154,8 +153,9 @@ export const SimulatorView: React.FC = () => {
 
           <form onSubmit={handleTransfer} className="space-y-3.5 text-xs">
             <div>
-              <label className="block text-slate-400 font-mono mb-1">Source Account</label>
+              <label htmlFor="source-account" className="block text-slate-400 font-mono mb-1">Source Account</label>
               <select
+                id="source-account"
                 value={sourceId}
                 onChange={(e) => setSourceId(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200 font-mono focus:outline-none focus:border-cyan-500"
@@ -169,9 +169,10 @@ export const SimulatorView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-slate-400 font-mono mb-1">Recipient Name</label>
+              <label htmlFor="transfer-recipient" className="block text-slate-400 font-mono mb-1">Recipient Name</label>
               <div className="space-y-1.5">
                 <input
+                  id="transfer-recipient"
                   type="text"
                   value={recipient}
                   onChange={(e) => setRecipient(e.target.value)}
@@ -199,10 +200,11 @@ export const SimulatorView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-slate-400 font-mono mb-1">Amount (USD - Decimal Precision)</label>
+              <label htmlFor="transfer-amount" className="block text-slate-400 font-mono mb-1">Amount (USD - Decimal Precision)</label>
               <div className="relative">
                 <span className="absolute left-3 top-2.5 text-slate-500 font-mono">$</span>
                 <input
+                  id="transfer-amount"
                   type="number"
                   step="0.01"
                   min="0.01"
@@ -215,8 +217,9 @@ export const SimulatorView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-slate-400 font-mono mb-1">Memo / Transfer Purpose</label>
+              <label htmlFor="transfer-memo" className="block text-slate-400 font-mono mb-1">Memo / Transfer Purpose</label>
               <input
+                id="transfer-memo"
                 type="text"
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
@@ -260,6 +263,9 @@ export const SimulatorView: React.FC = () => {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
                 className={`p-4 rounded-xl border ${
                   lastResult.action_executed
                     ? 'bg-emerald-950/30 border-emerald-500/40'

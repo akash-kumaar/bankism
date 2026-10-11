@@ -40,8 +40,17 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate }) => {
 
   useEffect(() => {
     loadData();
-    const timer = setInterval(loadData, 15000);
-    return () => clearInterval(timer);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        loadData();
+      }
+    };
+    const timer = setInterval(refreshWhenVisible, 15000);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
   }, []);
 
   const cardVariants = {

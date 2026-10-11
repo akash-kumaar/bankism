@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Shield, Activity, RefreshCw } from 'lucide-react';
+import { Shield, RefreshCw } from 'lucide-react';
 import { fetchHealth } from '../../services/api';
 import { HealthStatus } from '../../types';
 
@@ -21,8 +21,17 @@ export const Header: React.FC = () => {
 
   useEffect(() => {
     checkStatus();
-    const interval = setInterval(checkStatus, 30000);
-    return () => clearInterval(interval);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        checkStatus();
+      }
+    };
+    const interval = setInterval(refreshWhenVisible, 30000);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
   }, []);
 
   return (
